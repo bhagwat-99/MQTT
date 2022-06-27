@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include "MQTTClient.h"
-#include "/usr/local/include/MQTTClient.h"
+#include "MQTTClient.h"
+//#include "/usr/local/include/MQTTClient.h"
 
 #define ADDRESS     "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
 #define CLIENTID    "ExampleClientPub"
