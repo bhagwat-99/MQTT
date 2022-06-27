@@ -11,9 +11,9 @@
 #define TIMEOUT     10000L
 
 
-char * cafile = "/home/bhagwat/bhagwatws/mqtt/certificates/root-CA.crt";
-char * cert = "/home/bhagwat/bhagwatws/mqtt/certificates/test_device2.cert.pem";
-char * key = "/home/bhagwat/bhagwatws/mqtt/certificates/test_device2.private.key";
+char * cafile = "/etc/gateway/certificates/root-CA.crt";
+char * cert = "/etc/gateway/certificates/test_device2.cert.pem";
+char * key = "/etc/gateway/certificates/test_device2.private.key";
 
 
 volatile MQTTClient_deliveryToken deliveredtoken;

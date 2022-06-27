@@ -4,9 +4,9 @@
 #include "MQTTClient.h"
 //#include "/usr/local/include/MQTTClient.h"
 
-#define ADDRESS     "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
+#define ADDRESS     "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"  
 #define CLIENTID    "ExampleClientPub"
-#define TOPIC       "MQTT Examples"
+#define TOPIC       "gateway"
 #define PAYLOAD     "Hello Duniya!"
 #define QOS         1
 #define TIMEOUT     10000L
@@ -16,9 +16,9 @@
 // char * cert = "/home/bhagwat/bhagwatws/mqtt/certificates/test_device2.cert.pem";
 // char * key = "/home/bhagwat/bhagwatws/mqtt/certificates/test_device2.private.key";
 
-char * cafile = "/certificates/root-CA.crt";
-char * cert = "/certificates/test_device2.cert.pem";
-char * key = "/certificates/test_device2.private.key";
+char * cafile = "/etc/gateway/certificates/root-CA.crt";
+char * cert = "/etc/gateway/certificates/test_device2.cert.pem";
+char * key = "/etc/gateway/certificates/test_device2.private.key";
 
 int main(int argc, char* argv[])
 {
