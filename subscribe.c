@@ -4,9 +4,9 @@
 #include "MQTTClient.h"
 
 #define ADDRESS     "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
-#define CLIENTID    "ExampleClientSub"
-#define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
+#define CLIENTID    "gatewaySub"
+#define TOPIC       "gateway"
+#define PAYLOAD     "namaskaram vishwa!"
 #define QOS         1
 #define TIMEOUT     10000L
 
