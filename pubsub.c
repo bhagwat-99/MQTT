@@ -4,35 +4,50 @@
 #include <string.h>
 #include "MQTTClient.h"
 
-#define ADDRESS     "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
-#define CLIENTID    "gatewaySub"
-#define PUB_TOPIC    "gateway_pub"
-#define SUB_TOPIC    "gateway_sub"
-#define ACK_TOPIC   "gateway_ack"
-#define PAYLOAD     "payload to be replaced!"
-#define QOS         1
-#define TIMEOUT     10000L
+#define ADDRESS                 "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
+#define CLIENTID                "gateway"
+#define PUB_TOPIC               "gateway_pub"
+#define SUB_TOPIC1              "gateway_sub1"
+#define SUB_TOPIC2              "gateway_sub2"
+#define SUB_TOPIC_MAX_LENGTH    30
+#define ACK_TOPIC               "gateway_ack"
+#define PAYLOAD                 "payload to be replaced!"
+#define QOS                     1
+#define TIMEOUT                 10000L
 
+
+//certificate path
+char * cafile = "/etc/gateway/certificates/root-CA.crt";
+char * cert = "/etc/gateway/certificates/test_device2.cert.pem";
+char * key = "/etc/gateway/certificates/test_device2.private.key";
+
+
+//volatile MQTTClient_deliveryToken deliveredtoken;
 MQTTClient client;
 MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
 MQTTClient_message pubmsg = MQTTClient_message_initializer;
 MQTTClient_deliveryToken token;
 
-int rc;
+
+int rc; //return value variable
 int msg_arrvd = 0; //flag to check msg arrived
 
-char * cafile = "/etc/gateway/certificates/root-CA.crt";
-char * cert = "/etc/gateway/certificates/test_device2.cert.pem";
-char * key = "/etc/gateway/certificates/test_device2.private.key";
+char * ack_topic;
+char * ack_payload;
+//char * payload;
 
 
-volatile MQTTClient_deliveryToken deliveredtoken;
-
-
-void acknowledge()
+int acknowledge()
 {
-    pubmsg.payload = "{msg received successfully}";
+    strcpy(ack_payload,"msg received successfully from topic : ");
+    strcat(ack_payload,ack_topic);
+
+    //reset the flag   
+    msg_arrvd = 0;
+
+
+    pubmsg.payload = ack_payload;
     pubmsg.payloadlen = (int)strlen((const char *)(pubmsg.payload));
     pubmsg.qos = QOS;
     pubmsg.retained = 0;
@@ -42,33 +57,32 @@ void acknowledge()
         exit(EXIT_FAILURE);
     }
 
-    //reset the flag   
-    msg_arrvd = 0;
+    printf("ack ");
+
+    
 }
 
 void delivered(void *context, MQTTClient_deliveryToken dt)
 {
-    printf("Message delivered\n");
+    printf("message delivered\n");
 }
 
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
 {
-    int i;
-    char* payloadptr;
-    printf("Message arrived\n");
-    printf("     topic: %s\n", topicName);
-    printf("   message: ");
-    payloadptr = message->payload;
-    for(i=0; i<message->payloadlen; i++)
-    {
-        putchar(*payloadptr++);
-    }
-    putchar('\n');
+    msg_arrvd = 1;
+    strcpy(ack_topic,topicName);
+    
+    printf("\nMessage arrived on ");
+    printf("topic: %s\n", topicName);
+    printf("message: \n%s\n\n",(char *)message->payload);
+    
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);
-    msg_arrvd = 1;
+    
     return 1;
 }
+
+
 void connlost(void *context, char *cause)
 {
     printf("\nConnection lost\n");
@@ -86,6 +100,7 @@ void publish()
             printf("Failed to publish message, return code %d\n", rc);
             exit(EXIT_FAILURE);
         }
+        printf("publish ");
 
 }
 
@@ -114,9 +129,34 @@ int main(int argc, char* argv[])
         printf("Failed to connect, return code %d\n", rc);
         exit(EXIT_FAILURE);
     }
-    printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC, CLIENTID, QOS);
 
-    MQTTClient_subscribe(client, SUB_TOPIC, QOS);
+    //subscribing to first topic 
+    printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC1, CLIENTID, QOS);
+    MQTTClient_subscribe(client, SUB_TOPIC1, QOS);
+
+
+    //subscribing to the second topic
+    printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC2, CLIENTID, QOS);
+    MQTTClient_subscribe(client, SUB_TOPIC2, QOS);
+
+
+    //allocating memory for ack_topic
+    ack_topic = malloc(SUB_TOPIC_MAX_LENGTH); 
+    if(ack_topic == NULL)
+    {
+        printf("Error allocating memory for ack_topic\n");
+        exit(1);
+    }
+    ack_topic[0] = '\0';   // ensures the memory is an empty string
+
+    //allocating memory for ack_payload
+    ack_payload = malloc(strlen("msg received successfully from topic : ") + SUB_TOPIC_MAX_LENGTH + 1);
+    if(ack_payload == NULL)
+    {
+        printf("Error allocating memory for ack_payload\n");
+        exit(1);
+    }
+    ack_payload[0] = '\0';   // ensures the memory is an empty string
 
     while(1)
     {
@@ -125,9 +165,9 @@ int main(int argc, char* argv[])
                 acknowledge();
         }
 
-        publish();
+       publish();
 
-        sleep(5);
+       sleep(1);
 
     }
 
