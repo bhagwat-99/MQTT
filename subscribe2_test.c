@@ -17,9 +17,9 @@
 #define QOS         1
 #define TIMEOUT     10000L
 
-//flag to indentify who published msg
-int SUB1_MSG = 1;
-int SUB2_MSG = 2;
+// //flag to indentify who published msg
+// int SUB1_MSG = 1;
+// int SUB2_MSG = 2;
 
 
 
@@ -32,6 +32,10 @@ MQTTClient_deliveryToken token;
 int rc;
 int msg_arrvd_sub1 = 0; //flag to check msg arrived
 int msg_arrvd_sub2 = 0; //flag to check msg arrived
+
+char ack_topic[20];
+
+
 
 
 char * cafile = "/etc/gateway/certificates/root-CA.crt";
@@ -48,6 +52,10 @@ flag = 2 -> msg from second subcriber
 */
 void acknowledge(int flag)
 {
+
+    char ack_payload[20]={0};
+    strcpy();
+
     if(flag == SUB1_MSG)
     {
         pubmsg.payload = "ack msg received successfully";
