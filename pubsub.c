@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include <unistd.h>
 #include <string.h>
 #include "MQTTClient.h"
@@ -10,8 +12,9 @@
 #define SUB_TOPIC1              "gateway_sub1"
 #define SUB_TOPIC2              "gateway_sub2"
 #define SUB_TOPIC_MAX_LENGTH    30
+#define MAX_PAYLOAD_LENGTH      210
 #define ACK_TOPIC               "gateway_ack"
-#define PAYLOAD                 "payload to be replaced!"
+//#define PAYLOAD                 "payload to be replaced!"
 #define QOS                     1
 #define TIMEOUT                 10000L
 
@@ -35,8 +38,14 @@ int msg_arrvd = 0; //flag to check msg arrived
 
 char * ack_topic;
 char * ack_payload;
-//char * payload;
+char * payload;
 
+
+struct msg_buf{
+    /* data */
+    long msg_type;
+    char msg_text[210];
+}msg;
 
 int acknowledge()
 {
@@ -91,8 +100,8 @@ void connlost(void *context, char *cause)
 
 void publish()
 {
-        pubmsg.payload = PAYLOAD;
-        pubmsg.payloadlen = (int)strlen(PAYLOAD);
+        pubmsg.payload = payload;
+        pubmsg.payloadlen = (int)strlen(payload);
         pubmsg.qos = QOS;
         pubmsg.retained = 0;
         if ((rc = MQTTClient_publishMessage(client, PUB_TOPIC, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
@@ -108,6 +117,18 @@ void publish()
 int main(int argc, char* argv[])
 {
 
+    key_t msg_key;
+    int msgid;
+
+    if ((msg_key = ftok("/etc/systemd/system.conf", 65)) == -1){
+        perror("ftok: ");
+        exit(1);
+    }    
+
+    if ((msgid = msgget(msg_key, 0666 | IPC_CREAT)) == -1){
+        perror("msgid: ");
+        exit(1);
+    }
     
     MQTTClient_create(&client, ADDRESS, CLIENTID,
         MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -140,6 +161,16 @@ int main(int argc, char* argv[])
     MQTTClient_subscribe(client, SUB_TOPIC2, QOS);
 
 
+    //allocating memory for payload
+    payload = malloc(MAX_PAYLOAD_LENGTH); 
+    if(payload == NULL)
+    {
+        printf("Error allocating memory for payload\n");
+        exit(1);
+    }
+    payload[0] = '\0';   // ensures the memory is an empty string
+    strcpy(payload,"initilizing the payload");
+
     //allocating memory for ack_topic
     ack_topic = malloc(SUB_TOPIC_MAX_LENGTH); 
     if(ack_topic == NULL)
@@ -165,13 +196,23 @@ int main(int argc, char* argv[])
                 acknowledge();
         }
 
-       publish();
+        int ret_val = msgrcv(msgid, &msg, sizeof(msg), 1, 0);
+        if(ret_val < 0 )
+        {
+            perror("error : msgrcv");
+        }
+        printf("msg received : %s\n",msg.msg_text);
+        strcpy(payload,msg.msg_text);
 
-       sleep(1);
+        publish();
+
+        sleep(1);
 
     }
 
-
+    
+    
+    msgctl(msgid, IPC_RMID, NULL);
     MQTTClient_disconnect(client, 10000);
     MQTTClient_destroy(&client);
     return rc;
