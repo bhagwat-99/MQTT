@@ -44,7 +44,7 @@ char * payload;
 struct msg_buf{
     /* data */
     long msg_type;
-    char msg_text[210];
+    char msg_text[220];
 }msg;
 
 int acknowledge()
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 
         publish();
 
-        sleep(1);
+        //sleep(1);
 
     }
 
