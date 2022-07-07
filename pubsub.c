@@ -15,7 +15,7 @@
 #define MAX_PAYLOAD_LENGTH      210
 #define ACK_TOPIC               "gateway_ack"
 //#define PAYLOAD                 "payload to be replaced!"
-#define QOS                     1
+#define QOS                     0
 #define TIMEOUT                 10000L
 
 
@@ -132,8 +132,10 @@ int main(int argc, char* argv[])
     
     MQTTClient_create(&client, ADDRESS, CLIENTID,
         MQTTCLIENT_PERSISTENCE_NONE, NULL);
+
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
+    
     MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
     ssl_opts.keyStore = cert;
