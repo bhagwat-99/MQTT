@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <unistd.h>
@@ -8,21 +9,23 @@
 
 #define ADDRESS                 "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
 #define CLIENTID                "gateway"
-#define PUB_TOPIC               "gateway_pub"
-#define SUB_TOPIC1              "gateway_sub1"
-#define SUB_TOPIC2              "gateway_sub2"
-#define SUB_TOPIC_MAX_LENGTH    30
+// #define PUB_TOPIC               "gateway_pub"
+// #define SUB_TOPIC1              "gateway_sub1"
+// #define SUB_TOPIC2              "gateway_sub2"
+#define ACK_PUB_TOPIC_MAX_LENGTH    30
 #define MAX_PAYLOAD_LENGTH      210
 #define ACK_TOPIC               "gateway_ack"
-//#define PAYLOAD                 "payload to be replaced!"
 #define QOS                     0
 #define TIMEOUT                 10000L
+#define conf_file_path          "/etc/gateway/serial_ID"
+
 
 
 //certificate path
-char * cafile = "/etc/gateway/certificates/root-CA.crt";
-char * cert = "/etc/gateway/certificates/test_device2.cert.pem";
-char * key = "/etc/gateway/certificates/test_device2.private.key";
+char * cafile = "/etc/gateway/certificates/test_device.pem";
+char * cert = "/etc/gateway/certificates/root-CA.crt";
+char * key = "/etc/gateway/certificates/test_device_private.key";
+
 
 
 //volatile MQTTClient_deliveryToken deliveredtoken;
@@ -39,6 +42,10 @@ int msg_arrvd = 0; //flag to check msg arrived
 char * ack_topic;
 char * ack_payload;
 char * payload;
+
+char serial_ID[20];     //char array to store serial ID of device
+char pub_topic[50];     //char array to store pub topic
+char sub_topic[50];     //char array to store sub topic
 
 
 struct msg_buf{
@@ -69,6 +76,27 @@ int acknowledge()
     printf("ack ");
 
     
+}
+
+int read_serial_ID()
+{
+        //printf("in read_serial_ID\n");
+        int fd;
+        fd = open(conf_file_path,O_RDWR);
+        if(fd < 0)
+        {
+                printf("Failed to open %s\n.",conf_file_path);
+                exit(1);
+        }
+
+        rc = read(fd,serial_ID,10);
+        if(rc < 0)
+        {
+                printf("Failed to open %s\n.",conf_file_path);
+                exit(1);
+        }
+        close(fd);
+        return 0;
 }
 
 void delivered(void *context, MQTTClient_deliveryToken dt)
@@ -104,7 +132,7 @@ void publish()
         pubmsg.payloadlen = (int)strlen(payload);
         pubmsg.qos = QOS;
         pubmsg.retained = 0;
-        if ((rc = MQTTClient_publishMessage(client, PUB_TOPIC, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
+        if ((rc = MQTTClient_publishMessage(client, pub_topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
         {
             printf("Failed to publish message, return code %d\n", rc);
             exit(EXIT_FAILURE);
@@ -153,14 +181,25 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    //subscribing to first topic 
-    printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC1, CLIENTID, QOS);
-    MQTTClient_subscribe(client, SUB_TOPIC1, QOS);
+    //read serial_ID of device
+    read_serial_ID();
+
+    //sub topic
+    strcpy(sub_topic,"gateway/request/");
+    strcat(sub_topic,serial_ID);
+
+    //pub_topic
+    strcpy(pub_topic,"gateway/telemetry_data/");
+    strcat(pub_topic,serial_ID);
+
+    //subscribing to sub_topic 
+    printf("Subscribing to topic %s for client %s using QoS%d \n", sub_topic, CLIENTID, QOS);
+    MQTTClient_subscribe(client, sub_topic, QOS);
 
 
-    //subscribing to the second topic
-    printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC2, CLIENTID, QOS);
-    MQTTClient_subscribe(client, SUB_TOPIC2, QOS);
+//     //subscribing to the second topic
+//     printf("Subscribing to topic %s for client %s using QoS%d \n", SUB_TOPIC2, CLIENTID, QOS);
+//     MQTTClient_subscribe(client, SUB_TOPIC2, QOS);
 
 
     //allocating memory for payload
@@ -174,7 +213,7 @@ int main(int argc, char* argv[])
     strcpy(payload,"initilizing the payload");
 
     //allocating memory for ack_topic
-    ack_topic = malloc(SUB_TOPIC_MAX_LENGTH); 
+    ack_topic = malloc(ACK_PUB_TOPIC_MAX_LENGTH); 
     if(ack_topic == NULL)
     {
         printf("Error allocating memory for ack_topic\n");
@@ -183,7 +222,7 @@ int main(int argc, char* argv[])
     ack_topic[0] = '\0';   // ensures the memory is an empty string
 
     //allocating memory for ack_payload
-    ack_payload = malloc(strlen("msg received successfully from topic : ") + SUB_TOPIC_MAX_LENGTH + 1);
+    ack_payload = malloc(strlen("msg received successfully from topic : ") + ACK_PUB_TOPIC_MAX_LENGTH + 1);
     if(ack_payload == NULL)
     {
         printf("Error allocating memory for ack_payload\n");
@@ -203,7 +242,7 @@ int main(int argc, char* argv[])
         {
             perror("error : msgrcv");
         }
-        printf("msg received : %s\n",msg.msg_text);
+        //printf("msg received : %s\n",msg.msg_text);
         strcpy(payload,msg.msg_text);
 
         publish();
