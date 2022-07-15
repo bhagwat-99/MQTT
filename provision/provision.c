@@ -226,10 +226,6 @@ int create_register_thing_payload()
     //printf ("%s\n",json_object_to_json_string(jobj));
     //ppayload[0]='\0';
     strcpy(ppayload,json_object_to_json_string(jobj));
-    
-
-  
-
     return 0;
 
 }
