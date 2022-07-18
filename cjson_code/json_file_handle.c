@@ -72,7 +72,7 @@ int parse_json_file(const char * jsonfile, DEVICE *device, CLOUD *cloud)
 
 	//storing parsed data into device gateway and cloud structure
 
-	jdevice 	= cJSON_GetObjectItemCaseSensitive(gateway,"device");
+	jdevice = cJSON_GetObjectItemCaseSensitive(gateway,"device");
 	serial_ID = cJSON_GetObjectItemCaseSensitive(jdevice,"SERIAL_ID");
 	strcpy(device->device_ID,cJSON_Print(serial_ID));
 

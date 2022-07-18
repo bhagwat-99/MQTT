@@ -20,7 +20,7 @@
 
 
 //provision certificate path
-char * cafile = "/home/bhagwat/bhagwatws/mqtt/provision/provision_certificate/provision_root_ca.pem";
+char * cafile = "//provision_certificate/provision_root_ca.pem";
 char * cert = "/home/bhagwat/bhagwatws/mqtt/provision/provision_certificate/provision_certificate.pem.crt";
 char * key = "/home/bhagwat/bhagwatws/mqtt/provision/provision_certificate/provision_private.pem.key";
 

@@ -201,13 +201,14 @@ int main(int argc, char* argv[])
                 acknowledge();
         }
 
-        int ret_val = msgrcv(msgid, &msg, sizeof(msg), 1, 0);
-        if(ret_val < 0 )
-        {
-            perror("error : msgrcv");
-        }
-        //printf("msg received : %s\n",msg.msg_text);
-        strcpy(payload,msg.msg_text);
+        // int ret_val = msgrcv(msgid, &msg, sizeof(msg), 1, 0);
+        // if(ret_val < 0 )
+        // {
+        //     perror("error : msgrcv");
+        // }
+        // //printf("msg received : %s\n",msg.msg_text);
+        // strcpy(payload,msg.msg_text);
+        strcpy(payload,"test payload");
 
         publish();
 

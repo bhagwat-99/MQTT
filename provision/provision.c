@@ -130,7 +130,7 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     //printf("message: \n%s\n\n",(char *)message->payload);
     //printf("hello\n");
     //printf("payload length %d\n",message->payloadlen);
-    strcpy(pcert_data,message->payload);
+    //strcpy(pcert_data,message->payload);
     //printf("%s\n",pcert_data);
 
     
@@ -234,10 +234,7 @@ int main(int argc, char* argv[])
 {
 
     
-    MQTTClient_create(&client, ADDRESS, CLIENTID,
-        MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    conn_opts.keepAliveInterval = 20;
-    conn_opts.cleansession = 1;
+    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
     MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
     ssl_opts.keyStore = cert;
