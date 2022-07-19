@@ -6,9 +6,9 @@
 
 #define ADDRESS                 "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
 #define CLIENTID                "gateway_G001"
-#define PUB_TOPIC1               "gateway/telemetry_data"
-#define PUB_TOPIC2               "gateway/status"
-#define SUB_TOPIC              "gateway/request"
+#define PUB_TOPIC1               "gateway/telemetry_data/G001"
+#define PUB_TOPIC2               "gateway/status/G001"
+#define SUB_TOPIC              "gateway/request/G001"
 //#define SUB_TOPIC2              "gateway_sub2"
 #define SUB_TOPIC_MAX_LENGTH    30
 //#define ACK_TOPIC               "gateway_ack"
