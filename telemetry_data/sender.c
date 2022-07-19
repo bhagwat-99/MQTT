@@ -18,7 +18,7 @@ int main(){
     //printf("1\n");
     FILE* ptr;
 
-     key_t msg_key;
+    key_t msg_key;
     int msgid;
 
     if ((msg_key = ftok("/etc/systemd/system.conf", 65)) == -1){
@@ -35,14 +35,8 @@ int main(){
     int i = 0;
     strcpy(msg.msg_text,"{\"time\": \"2022-07-01T16:14:09\", \"mac\": \"CD:2C:B8:88:9D:FB\", \"rssi\": -40, \"data\": \"[0, 1, 1, 0, 39, 255, 229, 252, 29, 0, 46, 255, 221, 252, 21, 0, 50, 255, 229, 252, 33, 0, 39, 255, 233, 252, 33]\"}");
     while(1){
-        // ptr = fopen("/proc/sys/kernel/random/uuid", "r");
-        // fgets(message.mesg_text, MAX, ptr);
-        //message.mesg_text[0]="{"time": "2022-07-01T16:14:09", "mac": "CD:2C:B8:88:9D:FB", "rssi": -40, "data": "[0, 1, 1, 0, 39, 255, 229, 252, 29, 0, 46, 255, 221, 252, 21, 0, 50, 255, 229, 252, 33, 0, 39, 255, 233, 252, 33]"}";
-        // msg.msg_text[0] = "{\"time\": \"2022-07-01T16:14:09\", \"mac\": \"CD:2C:B8:88:9D:FB\", \"rssi\": -40, \"data\": \"[0, 1, 1, 0, 39, 255, 229, 252, 29, 0, 46, 255, 221, 252, 21, 0, 50, 255, 229, 252, 33, 0, 39, 255, 233, 252, 33]\"}";
-        // strcpy
         msgsnd(msgid, &msg, sizeof(msg), 0);
         printf("%d Data send is %s \n", i, msg.msg_text);
-        //fclose(ptr);
         i++;
         sleep(1);
     }
