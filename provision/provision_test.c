@@ -29,7 +29,7 @@
 
 int rc;                             //return value variable
 int msg_arrvd_flag = 0;             //flag to check msg arrived
-char * data_buf;
+char * data_buf= NULL;
 
 
 typedef struct DEVICE
@@ -67,18 +67,18 @@ void connlost(void *context, char *cause)
 
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
 {
-	msg_arrvd_flag = 1;
 
 	printf("Message arrived on ");
 	printf("topic: %s\n", topicName);
 	//printf("payload length %d\n",message->payloadlen);
-	//strcpy(data_buf,message->payload);
-	//printf("%s\n",pcert_data);
+	strcpy(data_buf,message->payload);
+	//data_buf = message->payload;
+	//printf("%s\n",data_buf);
 
 
 	MQTTClient_freeMessage(&message);
 	MQTTClient_free(topicName);
-
+	msg_arrvd_flag = 1;
 
 	return 1;
 }
@@ -110,10 +110,10 @@ int create_register_thing_payload(struct DEVICE *device)
 int create_certificates(struct DEVICE *device )
 {
 	cJSON * parsed_json;
-	cJSON * certificateID;
-	cJSON * certificatePem;
-	cJSON * privateKey;
-	cJSON * certificateOwnershipToken;
+	cJSON * jcertificateID;
+	cJSON * jcertificatePem;
+	cJSON * jprivateKey;
+	cJSON * jcertificateOwnershipToken;
 
 	parsed_json = cJSON_Parse(data_buf);
 
@@ -127,10 +127,10 @@ int create_certificates(struct DEVICE *device )
 		goto end;
 	}
 
-	certificateID = cJSON_GetObjectItemCaseSensitive(parsed_json,"certificateId");
-	certificatePem = cJSON_GetObjectItemCaseSensitive(parsed_json,"certificatePem");
-	privateKey = cJSON_GetObjectItemCaseSensitive(parsed_json,"privateKey");
-	certificateOwnershipToken = cJSON_GetObjectItemCaseSensitive(parsed_json,"certificateOwnershipToken");
+	jcertificateID = cJSON_GetObjectItem(parsed_json,"certificateId");
+	jcertificatePem = cJSON_GetObjectItemCaseSensitive(parsed_json,"certificatePem");
+	jprivateKey = cJSON_GetObjectItemCaseSensitive(parsed_json,"privateKey");
+	jcertificateOwnershipToken = cJSON_GetObjectItemCaseSensitive(parsed_json,"certificateOwnershipToken");
 
 	//creating certificate files
 
@@ -143,7 +143,7 @@ int create_certificates(struct DEVICE *device )
 		exit(1);
 	}
 
-	fprintf(fptr,"%s", cJSON_Print(certificatePem));
+	fprintf(fptr,"%s", jcertificatePem->valuestring);
 
 	fclose(fptr);
 
@@ -157,7 +157,7 @@ int create_certificates(struct DEVICE *device )
 		exit(1);
 	}
 
-	fprintf(fptr,"%s", cJSON_Print(privateKey));
+	fprintf(fptr,"%s", jprivateKey->valuestring);
 
 	fclose(fptr);
 
@@ -165,9 +165,9 @@ int create_certificates(struct DEVICE *device )
 
 	//strore certificate owenership token in pcertdata temporary for usign in payload formation
 	//strcpy(device->certOwnership_token, cJSON_Print(certificateOwnershipToken));
-	device->certOwnership_token = malloc(strlen(cJSON_Print(certificateOwnershipToken)+1));
+	device->certOwnership_token = malloc(strlen(jcertificateOwnershipToken->valuestring)+1);
 	if(device->certOwnership_token == NULL) fail();
-	device->certOwnership_token = cJSON_Print(certificateOwnershipToken);
+	strcpy(device->certOwnership_token, jcertificateOwnershipToken->valuestring);
 	//printf("certificateOwenershipToken : %s\n",pcert_data);
 
 
@@ -269,47 +269,49 @@ int parse_json_file(DEVICE *device, CLOUD *cloud)
 
 	//storing parsed data into device gateway and cloud structure
 
-	jdevice = cJSON_GetObjectItemCaseSensitive(jgateway,"device");
-	jserial_ID = cJSON_GetObjectItemCaseSensitive(jdevice,"SERIAL_ID");
+	jdevice = cJSON_GetObjectItem(jgateway,"device");
+	jserial_ID = cJSON_GetObjectItem(jdevice,"SERIAL_ID");
 
-	device->device_ID = malloc(strlen(cJSON_Print(jserial_ID) + 1));
+	device->device_ID = malloc(strlen(cJSON_Print(jserial_ID)));
 	if (device->device_ID == NULL) fail();
-	//strcpy(device->device_ID,cJSON_Print(jserial_ID));
-	device->device_ID = cJSON_Print(jserial_ID);
+	strcpy(device->device_ID,jserial_ID->valuestring);
+	//device->device_ID = jserial_ID->valuestring;
+	//printf("%s\n",jserial_ID->valuestring);
 
-	jclient_ID = cJSON_GetObjectItemCaseSensitive(jdevice,"NAME");
-	device->client_ID = malloc(strlen(cJSON_Print(jclient_ID) + 1));
+	jclient_ID = cJSON_GetObjectItem(jdevice,"NAME");
+
+	device->client_ID = malloc(strlen(cJSON_Print(jclient_ID)));
 	if (device->client_ID == NULL) fail();
-	//strcpy(device->client_ID,cJSON_Print(jclient_ID));
-	device->client_ID = cJSON_Print(jclient_ID);
+	strcpy(device->client_ID,jclient_ID->valuestring);
+	//device->client_ID = jclient_ID->valuestring;
 
 
-	jcloud 	= cJSON_GetObjectItemCaseSensitive(jgateway,"cloud");
+	jcloud 	= cJSON_GetObjectItem(jgateway,"cloud");
 
-	jaws_url = cJSON_GetObjectItemCaseSensitive(jcloud,"HOST");
-	cloud->aws_url = malloc(strlen(cJSON_Print(jaws_url) + 1));
+	jaws_url = cJSON_GetObjectItem(jcloud,"HOST");
+	cloud->aws_url = malloc(strlen(cJSON_Print(jaws_url)));
 	if (cloud->aws_url == NULL) fail();
-	//strcpy(cloud->aws_url,cJSON_Print(jaws_url));
-	cloud->aws_url = cJSON_Print(jaws_url);
+	strcpy(cloud->aws_url,jaws_url->valuestring);
+	//cloud->aws_url = jaws_url->valuestring;
 
-	jpub_topic_telemetry = cJSON_GetObjectItemCaseSensitive(jcloud,"TELEMETRY_PUBLISH_TOPIC");
-	cloud->pub_topic_telemetry = malloc(strlen(cJSON_Print(jpub_topic_telemetry)+1));
+	jpub_topic_telemetry = cJSON_GetObjectItem(jcloud,"TELEMETRY_PUBLISH_TOPIC");
+	cloud->pub_topic_telemetry = malloc(strlen(cJSON_Print(jpub_topic_telemetry)));
 	if(cloud->pub_topic_telemetry == NULL) fail();
-	//strcpy(cloud->pub_topic_telemetry,cJSON_Print(jpub_topic_telemetry));
-	cloud->pub_topic_telemetry = cJSON_Print(jpub_topic_telemetry);
+	strcpy(cloud->pub_topic_telemetry,jpub_topic_telemetry->valuestring);
+	//cloud->pub_topic_telemetry = jpub_topic_telemetry->valuestring;
 
 
-	jpub_topic_status = cJSON_GetObjectItemCaseSensitive(jcloud,"STATUS_PUBLISH_TOPIC");
-	cloud->pub_topic_status = malloc(strlen(cJSON_Print(jpub_topic_status)+1));
+	jpub_topic_status = cJSON_GetObjectItem(jcloud,"STATUS_PUBLISH_TOPIC");
+	cloud->pub_topic_status = malloc(strlen(cJSON_Print(jpub_topic_status)));
 	if(cloud->pub_topic_status == NULL) fail();
-	//strcpy(cloud->pub_topic_status,cJSON_Print(jpub_topic_status));
-	cloud->pub_topic_status = cJSON_Print(jpub_topic_status);
+	strcpy(cloud->pub_topic_status,jpub_topic_status->valuestring);
+	//cloud->pub_topic_status = jpub_topic_status->valuestring;
 
 	jsub_topic_request = cJSON_GetObjectItemCaseSensitive(jcloud,"JOB_TOPIC");
-	cloud->sub_topic_request = malloc(strlen(cJSON_Print(jsub_topic_request)+1));
+	cloud->sub_topic_request = malloc(strlen(cJSON_Print(jsub_topic_request)));
 	if(cloud->sub_topic_request == NULL) fail();
-	//strcpy(cloud->sub_topic_request,cJSON_Print(sub_topic_request));
-	cloud->sub_topic_request = cJSON_Print(jsub_topic_request);
+	strcpy(cloud->sub_topic_request,jsub_topic_request->valuestring);
+	//cloud->sub_topic_request = jsub_topic_request->valuestring;
 
 	end:
 		cJSON_Delete(jgateway);
@@ -318,6 +320,7 @@ int parse_json_file(DEVICE *device, CLOUD *cloud)
 
 
 }
+
 
 
 int read_config_file(char * filename,char * mode)
@@ -341,12 +344,12 @@ int main()
 	data_buf = malloc(4000 * sizeof(char));
 	if (data_buf == NULL) fail();
 
-	printf("debug1\n");
+	//printf("debug1\n");
 
 	DEVICE gateway_device;
 	CLOUD gateway_cloud;
 
-	printf("debug2\n");
+	//printf("debug2\n");
 
 	
 
@@ -366,33 +369,33 @@ int main()
 	conn_opts.cleansession = 1;
 	conn_opts.ssl = &ssl_opts;
 
-	printf("debug3\n");
+	//printf("debug3\n");
 
 	read_config_file(CONF_FILE_PATH,"r");
 
-	printf("read_config_file_done\n");
+	//printf("read_config_file_done\n");
 
 	//printf("%s\n",data_buf);
 
 
 	//parse tha json file and store the device and cloud data in respective struct
 	parse_json_file(&gateway_device,&gateway_cloud);
-	printf("parsed json file\n");
-	free(data_buf);
+	//printf("parsed json file\n");
+	//free(data_buf);
 
 	//printf("%s\n",gateway_device.client_ID);
 
 	//printf("%s\n",gateway_cloud.aws_url);
 
-
+	//sleep(1000);
 
 
 	//MQTTClient_create(&client, gateway_cloud.aws_url, gateway_device.client_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	MQTTClient_create(&client, gateway_cloud.aws_url, gateway_device.client_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
-	printf("create\n");
+	//printf("create\n");
 	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
-	printf("trying to connect\n");
+	//printf("trying to connect\n");
 
 	if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
 	{
@@ -401,25 +404,38 @@ int main()
 	}
 	printf("connected\n");
 
-	// subscribe_to_reserved_topic(client,&gateway_device);
-	sleep(500);
-
-
+	subscribe_to_reserved_topic(client,&gateway_device);
 
 	
 
-	data_buf = malloc(4000 * sizeof(char));
-	if (data_buf == NULL) fail();
+	// data_buf = malloc(4000 * sizeof(char));
+	// if (data_buf == NULL) fail();
 
 	//publish on reserved topic with empty payload for create certificate
-	strcpy(data_buf,"");
-	publish(client,pubmsg,token,PUB_TOPIC_CERT,data_buf);
+	//strcpy(data_buf,"");
+	publish(client,pubmsg,token,PUB_TOPIC_CERT,"");
 
 	//wait for response
+	// printf("waiting for response\n");
 	while(msg_arrvd_flag == 0);
+	//printf("%s\n",data_buf);
+	//free(data_buf);
+	//sleep(1000);
+
+	//printf("parsing the data_buf\n");
+
+	//cJSON * test_parse = cJSON_Parse(data_buf);
+
+	//printf("parsed\n");
+
+	//printf("%s\n",cJSON_Print(test_parse));
 
 	//create certificate files from string
 	create_certificates(&gateway_device);
+
+	//printf("%s\n",gateway_device.certOwnership_token);
+
+	//sleep(1000);
 
 	create_register_thing_payload(&gateway_device);
 
@@ -428,19 +444,19 @@ int main()
 	// //publish on reserved topic for register thing
 	publish(client,pubmsg,token,PUB_TOPIC_THING,data_buf);
 
-	printf("publish thing done \n");
+	//printf("publish thing done \n");
 
 	while(msg_arrvd_flag == 0);
 
 	// //wait for response
 
 	//while(msg_arrvd_flag == 0);
-	printf("\nhello\n");
+	//printf("\nhello\n");
 
-	//printf("\n%s\n",pcert_data);
+	printf("\n%s\n",data_buf);
 
 
-	sleep(100);
+	//sleep(100);
 
 	MQTTClient_disconnect(client, 10000);
 	MQTTClient_destroy(&client);

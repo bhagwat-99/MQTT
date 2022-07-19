@@ -5,25 +5,21 @@
 #include "MQTTClient.h"
 
 #define ADDRESS                 "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883"
-#define CLIENTID                "gateway"
-#define PUB_TOPIC               "gateway_pub"
-#define SUB_TOPIC1              "gateway_sub1"
-#define SUB_TOPIC2              "gateway_sub2"
+#define CLIENTID                "gateway_G001"
+#define PUB_TOPIC1               "gateway/telemetry_data"
+#define PUB_TOPIC2               "gateway/status"
+#define SUB_TOPIC              "gateway/request"
+//#define SUB_TOPIC2              "gateway_sub2"
 #define SUB_TOPIC_MAX_LENGTH    30
-#define ACK_TOPIC               "gateway_ack"
+//#define ACK_TOPIC               "gateway_ack"
 #define PAYLOAD                 "payload to be replaced!"
 #define QOS                     1
 #define TIMEOUT                 10000L
 
-
-
-
-
-//provision certificate path
-char * cafile = "//provision_certificate/provision_root_ca.pem";
-char * cert = "/home/bhagwat/bhagwatws/mqtt/provision/provision_certificate/provision_certificate.pem.crt";
-char * key = "/home/bhagwat/bhagwatws/mqtt/provision/provision_certificate/provision_private.pem.key";
-
+//certificate path
+#define cafile                      "/etc/gateway/certificates/AmazonRootCA1.pem";
+#define cert                        "/etc/gateway/certificates/device_certificate.crt";
+#define key                         "/etc/gateway/certificates/device_private.key";
 
 //volatile MQTTClient_deliveryToken deliveredtoken;
 MQTTClient client;
