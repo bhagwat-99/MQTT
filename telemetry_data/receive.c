@@ -39,7 +39,7 @@ int main()
         exit(1);
         }
 
-        for(int i =0 ; i <  20; i++)
+        for(int i =0 ; i <  150; i++)
         {
                 msgrcv(msgid, &msg, sizeof(msg), 1, 0);
                 jstring = cJSON_CreateString(msg.msg_text);
