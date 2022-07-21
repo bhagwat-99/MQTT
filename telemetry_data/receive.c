@@ -11,7 +11,7 @@
 struct msg_buf{
     /* data */
     long msg_type;
-    char msg_text[220];
+    char msg_text[230];
 }msg;
 
 int main()
@@ -19,6 +19,7 @@ int main()
         cJSON * jobj = NULL;
         cJSON * jpayload = NULL;
         cJSON * jstring = NULL;
+        cJSON * jserial_ID = NULL;
 
         jobj = cJSON_CreateObject();
         jpayload = cJSON_CreateArray();
@@ -38,6 +39,14 @@ int main()
         perror("msgid: ");
         exit(1);
         }
+        msg.msg_type = 1;
+        // while(1)
+        // {
+        //         printf("waiting for msg\n");
+        //         msgrcv(msgid, &msg, sizeof(msg), 1, 0);
+        //         printf("%s\n",msg.msg_text);
+        //         //sleep(1);
+        // }
 
         for(int i =0 ; i <  150; i++)
         {

@@ -40,7 +40,7 @@ typedef struct CLOUD
 struct msg_buf{
     /* data */
     long msg_type;
-    char msg_text[230];
+    char msg_text[220];
 }msg;
 
 
@@ -210,12 +210,6 @@ int main(int argc, char* argv[])
 	MQTTClient_message pubmsg = MQTTClient_message_initializer;
 	MQTTClient_deliveryToken token;
 
-
-        cJSON * jobj = NULL;
-        cJSON * jpayload = NULL;
-        cJSON * jstring = NULL;
-	cJSON * jserial_ID = NULL;
-
 	//connect options
 	ssl_opts.keyStore = cert;
 	ssl_opts.trustStore = cafile;
@@ -245,18 +239,13 @@ int main(int argc, char* argv[])
 	}
 	printf("connected\n");
 
-
-
-	//printf("1\n");
+        cJSON * jobj = NULL;
+        cJSON * jpayload = NULL;
+        cJSON * jstring = NULL;
 
         jobj = cJSON_CreateObject();
         jpayload = cJSON_CreateArray();
-	jserial_ID = cJSON_CreateString(gateway_device.device_ID);
-	cJSON_AddStringToObject(jobj, "serial_ID", gateway_device.device_ID);
         cJSON_AddItemToObject(jobj,"payloads",jpayload);
-
-	//printf("1\n");
-
 
         FILE* ptr;
 
@@ -267,48 +256,34 @@ int main(int argc, char* argv[])
         perror("ftok: ");
         exit(1);
         }    
-	//printf("1\n");
-
 
         if ((msgid = msgget(msg_key, 0666 | IPC_CREAT)) == -1){
         perror("msgid: ");
         exit(1);
         }
-	//printf("1\n");
 
-	msg.msg_type = 1;
         
 	//printf("%s\n",jpayload->valuestring);
 
-	//printf("1\n");
-
 	strcat(gateway_cloud.pub_topic_telemetry,gateway_device.device_ID);
 	strcat(gateway_cloud.pub_topic_status,gateway_device.device_ID);
-	//printf("2\n");
 
-
-	//printf("status : %s\n",gateway_cloud.pub_topic_status);
-	//printf("telemetry : %s\n",gateway_cloud.pub_topic_telemetry);
+	// printf("status : %s\n",gateway_cloud.pub_topic_status);
+	// printf("telemetry : %s\n",gateway_cloud.pub_topic_telemetry);
 	//printf("jpayload : %s\n",cJSON_Print(jpayload));
 	//strcpy(data_buf,jpayload->valuestring);
 	// printf("%s\n",data_buf);
-	//printf("1\n");
-
 	
 	while(1)
 	{
-		for(int i =0 ; i < 150; i++)
+		for(int i =0 ; i < 10; i++)
 		{
-			printf("%d\n",i);
 			msgrcv(msgid, &msg, sizeof(msg), 1, 0);
-			//printf("%s\n",msg.msg_text);
 			jstring = cJSON_CreateString(msg.msg_text);
 			cJSON_AddItemToArray(jpayload,jstring);
-			
 
 		}
-		printf("%s\n",cJSON_Print(jobj));
-		publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,cJSON_Print(jobj));
+		publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,cJSON_Print(jpayload));
 	}
 
 	end:
