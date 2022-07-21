@@ -1,9 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include "cjson/cJSON.h"
 #include "MQTTClient.h"
@@ -13,13 +11,12 @@
 
 #define CONF_FILE_PATH "/etc/gateway/gateway.conf"
 
-
 //certificate path
 #define cafile                      "/etc/gateway/certificates/AmazonRootCA1.pem";
 #define cert                        "/etc/gateway/certificates/device_certificate.crt";
 #define key                         "/etc/gateway/certificates/device_private.key";
 
-typedef struct DEVICE
+typedef struct
 {
 
 	char *certOwnership_token;
@@ -28,7 +25,9 @@ typedef struct DEVICE
 
 }DEVICE;
 
-typedef struct CLOUD
+#define DEVICE_initializer {NULL,NULL,NULL};
+
+typedef struct 
 {
 	char *	aws_url;// = "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883";
 	char *	pub_topic_telemetry;
@@ -37,24 +36,26 @@ typedef struct CLOUD
 
 }CLOUD;
 
-struct msg_buf{
-    /* data */
-    long msg_type;
-    char msg_text[230];
-}msg;
+#define CLOUD_initializer {"ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com:8883","gateway/telemetry_data/","gateway/status/","gataway/request/"}
 
 
-int rc;                             //return value variable
-int msg_arrvd_flag = 0;             //flag to check msg arrived
-//char * data_buf= NULL;
+typedef struct
+{
+        char * serial_ID; //serial id of device eg G001
+        char * timestamp; 
+        char * type; //type of payload eg boot/status
+        char * data; //send requested data from device
+        char * location; // gps location
+
+}PAYLOAD;
+
+#define PAYLOAD_initializer {NULL,NULL,NULL,NULL,NULL}
+
+int rc;
+int msg_arrvd_flag = 0;
+
 
 void fail(void) {printf("error allocating memory \n"); exit(EXIT_FAILURE);}
-
-
-void delivered(void *context, MQTTClient_deliveryToken dt)
-{
-    printf("message delivered\n");
-}
 
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
 {
@@ -74,20 +75,13 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 	return 1;
 }
 
-
-void connlost(void *context, char *cause)
-{
-    printf("\nConnection lost\n");
-    printf("     cause: %s\n", cause);
-}
-
 void publish(MQTTClient client,MQTTClient_message pubmsg,MQTTClient_deliveryToken token,char * publish_topic,char * payload)
 {
         pubmsg.payload = payload;
         pubmsg.payloadlen = (int)strlen(payload);
         pubmsg.qos = QOS;
         pubmsg.retained = 0;
-        printf("in publish\n");
+        //printf("in publish\n");
         if ((rc = MQTTClient_publishMessage(client, publish_topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
         {
             printf("Failed to publish message, return code %d\n", rc);
@@ -97,7 +91,16 @@ void publish(MQTTClient client,MQTTClient_message pubmsg,MQTTClient_deliveryToke
 
 }
 
+void delivered(void *context, MQTTClient_deliveryToken dt)
+{
+        printf("message delivered\n");
+}
 
+void connlost(void *context, char *cause)
+{
+    printf("\nConnection lost\n");
+    printf("     cause: %s\n", cause);
+}
 
 int parse_json_file(DEVICE *device, CLOUD *cloud, char * jsonfile)
 {
@@ -178,6 +181,7 @@ int parse_json_file(DEVICE *device, CLOUD *cloud, char * jsonfile)
 
 }
 
+
 char * read_config_file(char * filename,char * mode,char * dest_buf)
 {
 	FILE * fd;
@@ -195,28 +199,55 @@ char * read_config_file(char * filename,char * mode,char * dest_buf)
 
 
 
-int main(int argc, char* argv[])
+char * create_payload(PAYLOAD *payload, char * buffer)
 {
-	char * data_buf = NULL;
+
+	/*Creating a json object*/
+	cJSON * jobj = cJSON_CreateObject();
+	
+	/*Creating a json string*/
+	cJSON * jserial_ID = cJSON_CreateString(payload->serial_ID);
+	cJSON_AddItemToObject(jobj,"serial_ID", jserial_ID);
+
+	cJSON * jtimestamp = cJSON_CreateString(payload->timestamp);
+	cJSON_AddItemToObject(jobj, "timestamp", jtimestamp);
+
+	cJSON * jtype = cJSON_CreateString(payload->type);
+	cJSON_AddItemToObject(jobj,"type", jtype);
+
+        cJSON * jdata = cJSON_CreateString(payload->data);
+        cJSON_AddItemToObject(jobj,"data", jdata);
+        
+        cJSON * jlocation = cJSON_CreateString(payload->location);
+        cJSON_AddItemToObject(jobj,"jlocation", jlocation);
+
+	strcpy(buffer,cJSON_Print(jobj));
+
+	cJSON_Delete(jobj);
+	
+
+	return buffer;
+}
+
+
+int main()
+{
+
+        char * data_buf = NULL;
 	data_buf = malloc(4000*(sizeof(char)));
 
-	DEVICE gateway_device;
-	CLOUD gateway_cloud;
+        DEVICE gateway_device = DEVICE_initializer;
+	CLOUD gateway_cloud = CLOUD_initializer;
+        PAYLOAD gateway_payload = PAYLOAD_initializer;
 
-	// //volatile MQTTClient_deliveryToken deliveredtoken;
-	MQTTClient client;
-	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-	MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
-	MQTTClient_message pubmsg = MQTTClient_message_initializer;
-	MQTTClient_deliveryToken token;
+        //volatile MQTTClient_deliveryToken deliveredtoken;
+        MQTTClient client;
+        MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+        MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
+        MQTTClient_message pubmsg = MQTTClient_message_initializer;
+        MQTTClient_deliveryToken token;
 
-
-        cJSON * jobj = NULL;
-        cJSON * jpayload = NULL;
-        cJSON * jstring = NULL;
-	cJSON * jserial_ID = NULL;
-
-	//connect options
+        //connect options
 	ssl_opts.keyStore = cert;
 	ssl_opts.trustStore = cafile;
 	ssl_opts.privateKey = key;
@@ -225,13 +256,14 @@ int main(int argc, char* argv[])
 	conn_opts.cleansession = 1;
 	conn_opts.ssl = &ssl_opts;
 
-	data_buf = read_config_file(CONF_FILE_PATH,"r",data_buf);
 
-	//printf("%s\n",data_buf);
+        read_config_file(CONF_FILE_PATH,"r",data_buf);
 
-	parse_json_file(&gateway_device,&gateway_cloud,data_buf);
+        parse_json_file(&gateway_device,&gateway_cloud,data_buf);
 
-	free(data_buf);
+        strcat(gateway_cloud.pub_topic_telemetry,gateway_device.device_ID);
+	strcat(gateway_cloud.pub_topic_status,gateway_device.device_ID);
+
 
 	MQTTClient_create(&client, gateway_cloud.aws_url, gateway_device.client_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
@@ -246,75 +278,39 @@ int main(int argc, char* argv[])
 	printf("connected\n");
 
 
+        //printf("serial_ID: %s\n",gateway_device.device_ID);
+        gateway_payload.serial_ID = malloc(strlen(gateway_device.device_ID)+1);
+        if(gateway_payload.serial_ID == NULL) fail();
+        strcpy(gateway_payload.serial_ID,gateway_device.device_ID);
 
-	//printf("1\n");
+        //location of device
+        gateway_payload.location = "NULL";
+	gateway_payload.data = "NULL";
 
-        jobj = cJSON_CreateObject();
-        jpayload = cJSON_CreateArray();
-	jserial_ID = cJSON_CreateString(gateway_device.device_ID);
-	cJSON_AddStringToObject(jobj, "serial_ID", gateway_device.device_ID);
-        cJSON_AddItemToObject(jobj,"payloads",jpayload);
+        //payload for boot
+	gateway_payload.type = malloc(10);
+	if(gateway_payload.type == NULL) fail();
+        strcpy(gateway_payload.type,"boot");
+	printf("%s\n",gateway_payload.type);
+	//while(1);
+        create_payload(&gateway_payload,data_buf);
+        printf("%s\n",data_buf);
+        publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,data_buf);
 
-	//printf("1\n");
+        //payload to status
+        strcpy(gateway_payload.type,"status");
+        create_payload(&gateway_payload,data_buf);
 
+        while(1)
+        {
+                //printf("%s\n",data_buf);
+                publish(client, pubmsg , token, gateway_cloud.pub_topic_status,data_buf);
 
-        FILE* ptr;
-
-        key_t msg_key;
-        int msgid;
-
-        if ((msg_key = ftok("/etc/systemd/system.conf", 65)) == -1){
-        perror("ftok: ");
-        exit(1);
-        }    
-	//printf("1\n");
-
-
-        if ((msgid = msgget(msg_key, 0666 | IPC_CREAT)) == -1){
-        perror("msgid: ");
-        exit(1);
+                sleep(5);
         }
-	//printf("1\n");
 
-	msg.msg_type = 1;
-        
-	//printf("%s\n",jpayload->valuestring);
-
-	//printf("1\n");
-
-	strcat(gateway_cloud.pub_topic_telemetry,gateway_device.device_ID);
-	strcat(gateway_cloud.pub_topic_status,gateway_device.device_ID);
-	//printf("2\n");
-
-
-	//printf("status : %s\n",gateway_cloud.pub_topic_status);
-	//printf("telemetry : %s\n",gateway_cloud.pub_topic_telemetry);
-	//printf("jpayload : %s\n",cJSON_Print(jpayload));
-	//strcpy(data_buf,jpayload->valuestring);
-	// printf("%s\n",data_buf);
-	//printf("1\n");
-
-	
-	while(1)
-	{
-		for(int i =0 ; i < 150; i++)
-		{
-			printf("%d\n",i);
-			msgrcv(msgid, &msg, sizeof(msg), 1, 0);
-			//printf("%s\n",msg.msg_text);
-			jstring = cJSON_CreateString(msg.msg_text);
-			cJSON_AddItemToArray(jpayload,jstring);
-			
-
-		}
-		printf("%s\n",cJSON_Print(jobj));
-		publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,cJSON_Print(jobj));
-	}
-
-	end:
-	msgctl(msgid, IPC_RMID, NULL);
-	cJSON_Delete(jobj);
-	MQTTClient_disconnect(client, 10000);
-	MQTTClient_destroy(&client);
-	return 0;
+        free(gateway_payload.serial_ID);
+	free(gateway_payload.type);
+        free(data_buf);
+        return 0;
 }

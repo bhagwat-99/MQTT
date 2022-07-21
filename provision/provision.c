@@ -307,7 +307,7 @@ int parse_json_file(DEVICE *device, CLOUD *cloud)
 	strcpy(cloud->pub_topic_status,jpub_topic_status->valuestring);
 	//cloud->pub_topic_status = jpub_topic_status->valuestring;
 
-	jsub_topic_request = cJSON_GetObjectItemCaseSensitive(jcloud,"JOB_TOPIC");
+	jsub_topic_request = cJSON_GetObjectItem(jcloud,"JOB_TOPIC");
 	cloud->sub_topic_request = malloc(strlen(cJSON_Print(jsub_topic_request)));
 	if(cloud->sub_topic_request == NULL) fail();
 	strcpy(cloud->sub_topic_request,jsub_topic_request->valuestring);
