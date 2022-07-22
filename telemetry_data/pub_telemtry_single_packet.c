@@ -8,7 +8,7 @@
 #include "cjson/cJSON.h"
 #include "MQTTClient.h"
 
-#define QOS                     1
+#define QOS                     0
 #define TIMEOUT                 10000L
 
 #define CONF_FILE_PATH "/etc/gateway/gateway.conf"
@@ -244,12 +244,14 @@ int main(int argc, char* argv[])
 
 
 
-	cJSON * jobj = NULL;
-        cJSON * jstring = NULL;
-	jstring = cJSON_CreateString("Initialize");
-        jobj = cJSON_CreateObject();
-	cJSON_AddStringToObject(jobj,"serial_ID",gateway_device.device_ID);
-	cJSON_AddItemToObject(jobj,"payload",jstring);
+	// cJSON * jobj = NULL;
+        // cJSON * jstring = NULL;
+	// jstring = cJSON_CreateString("Initialize");
+        // jobj = cJSON_CreateObject();
+	// cJSON_AddStringToObject(jobj,"serial_ID",gateway_device.device_ID);
+	// cJSON_AddItemToObject(jobj,"payload",jstring);
+
+	
 
 
         FILE* ptr;
@@ -280,25 +282,27 @@ int main(int argc, char* argv[])
 	strcat(gateway_cloud.pub_topic_status,gateway_device.device_ID);
 	//printf("2\n");
 
-
+	cJSON * parsed_json = NULL;
 	while(1)
 	{
 		//printf("%s\n",cJSON_Print(jobj));
 		printf("waiting for msg\n");
 		msgrcv(msgid, &msg, sizeof(msg), 1, 0);
 		//printf("%s\n",msg.msg_text);
+		parsed_json = cJSON_Parse(msg.msg_text);
+		cJSON_AddStringToObject(parsed_json,"serial_ID",gateway_device.device_ID);
 		
-		cJSON * jstring = cJSON_CreateString(msg.msg_text);
-		cJSON_ReplaceItemInObject(jobj,"payload",jstring);
-		//printf("%s\n",cJSON_Print(jobj));
+		// cJSON * jstring = cJSON_CreateString(msg.msg_text);
+		// cJSON_ReplaceItemInObject(jobj,"payload",jstring);
+		printf("%s\n",cJSON_Print(parsed_json));
 			
                 //sleep(1);
-		publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,cJSON_Print(jobj));
+		publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,cJSON_Print(parsed_json));
 	}
 
 	end:
 	msgctl(msgid, IPC_RMID, NULL);
-	cJSON_Delete(jobj);
+	cJSON_Delete(parsed_json);
 	MQTTClient_disconnect(client, 10000);
 	MQTTClient_destroy(&client);
 	return 0;

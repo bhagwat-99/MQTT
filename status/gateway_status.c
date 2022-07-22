@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include "cjson/cJSON.h"
 #include "MQTTClient.h"
 
@@ -87,7 +88,7 @@ void publish(MQTTClient client,MQTTClient_message pubmsg,MQTTClient_deliveryToke
             printf("Failed to publish message, return code %d\n", rc);
             exit(EXIT_FAILURE);
         }
-	printf("publish\n");
+	printf("publish ");
 
 }
 
@@ -219,7 +220,7 @@ char * create_payload(PAYLOAD *payload, char * buffer)
         cJSON_AddItemToObject(jobj,"data", jdata);
         
         cJSON * jlocation = cJSON_CreateString(payload->location);
-        cJSON_AddItemToObject(jobj,"jlocation", jlocation);
+        cJSON_AddItemToObject(jobj,"location", jlocation);
 
 	strcpy(buffer,cJSON_Print(jobj));
 
@@ -229,6 +230,23 @@ char * create_payload(PAYLOAD *payload, char * buffer)
 	return buffer;
 }
 
+
+char * date_time_fuc(char * time_buf)
+{
+        time_t now;
+        struct tm ts;
+        // char time_buf[30];
+        // char time_str[30];
+        time ( &now );
+        ts = *localtime ( &now );
+
+        // time format to save in csv file
+        strftime(time_buf, 30, "%a %Y-%m-%d %H:%M:%S %Z", &ts);
+
+        //printf("%s\n",time_buf);
+        return time_buf;
+        
+}
 
 int main()
 {
@@ -288,29 +306,36 @@ int main()
 	gateway_payload.data = "NULL";
 
         //payload for boot
-	gateway_payload.type = malloc(10);
+	gateway_payload.type = malloc(10*(sizeof(char)));
 	if(gateway_payload.type == NULL) fail();
         strcpy(gateway_payload.type,"boot");
-	printf("%s\n",gateway_payload.type);
-	//while(1);
+	gateway_payload.timestamp = malloc(30*(sizeof(char)));
+	if(gateway_payload.timestamp == NULL) fail();
+	date_time_fuc(data_buf);
+	strcpy(gateway_payload.timestamp,data_buf);
         create_payload(&gateway_payload,data_buf);
-        printf("%s\n",data_buf);
+        //printf("%s\n",data_buf);
         publish(client, pubmsg , token, gateway_cloud.pub_topic_telemetry,data_buf);
+
 
         //payload to status
         strcpy(gateway_payload.type,"status");
-        create_payload(&gateway_payload,data_buf);
-
         while(1)
         {
+		//timestamp
+		date_time_fuc(data_buf);
+		strcpy(gateway_payload.timestamp,data_buf);
+		//gps location
+		create_payload(&gateway_payload,data_buf);
                 //printf("%s\n",data_buf);
                 publish(client, pubmsg , token, gateway_cloud.pub_topic_status,data_buf);
 
-                sleep(5);
+                sleep(300);
         }
 
         free(gateway_payload.serial_ID);
 	free(gateway_payload.type);
         free(data_buf);
+	free(gateway_payload.timestamp);
         return 0;
 }
