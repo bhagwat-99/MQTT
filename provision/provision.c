@@ -78,7 +78,7 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 
 	MQTTClient_freeMessage(&message);
 	MQTTClient_free(topicName);
-	msg_arrvd_flag = 1;
+	msg_arrvd_flag = 1;                                   
 
 	return 1;
 }
