@@ -5,13 +5,13 @@ import time as t
 
 data = 256
 # Basic Connection Configuration
-mqttBroker = "ssl://a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com"
-client = mqtt.Client("gateway_G001")
+mqttBroker = "a33enhgkqb6z8i-ats.iot.us-west-2.amazonaws.com"
+client = mqtt.Client("gateway_test_device")
 port = 8883
 # MQTT_KEEPALIVE_INTERVAL = 45
-MQTT_TOPIC_PUB = "gateway/status"
-MQTT_TOPIC_SUB = "gateway/"
-client.tls_set("certificates/AmazonRootCA1.pem","certificates/certificate.pem.crt","certificates/private.pem.key")
+MQTT_TOPIC_PUB = "gateway_pub"
+MQTT_TOPIC_SUB = "gateway_sub"
+client.tls_set("/test_certificates/AmazonRootCA1.pem","/test_certificates/device_certificate.crt","/test_certificates/device_private.key")
 
 def on_publish(client, userdata, mid):
     print ("Message Published...")
@@ -21,8 +21,8 @@ def on_connect(client, userdata, flags, rc):
 		print("Connected OK")
 	else:
 		print("Bad connection")
-	client.subscribe(MQTT_TOPIC)
-	client.publish(MQTT_TOPIC, 123)
+	client.subscribe(MQTT_TOPIC_PUB)
+	client.publish(MQTT_TOPIC_SUB, 123)
 
 def on_message(client, userdata, msg):
     print(msg.topic)
