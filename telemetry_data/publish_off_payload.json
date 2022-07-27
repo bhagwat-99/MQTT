@@ -1,0 +1,5 @@
+//publish on topic /gateway/request/serial_ID 
+{
+        "request":"change_publish_status",
+        "status":"on"//on - publish on ,off - publish off
+}
